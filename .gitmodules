@@ -1,0 +1,3 @@
+[submodule "www/application"]
+	path = www/application
+	url = https://github.com/mcn2004/Macnolo-Tech-Website.git
