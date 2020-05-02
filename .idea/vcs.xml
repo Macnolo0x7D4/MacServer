@@ -2,6 +2,12 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/MacServer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/app" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/application/app" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/application/application" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/www" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/www/application" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/www" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/www/application" vcs="Git" />
   </component>

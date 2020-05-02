@@ -20,7 +20,12 @@ func CreateDefaultResponse(w http.ResponseWriter) Response {
 
 func (this *Response) NotFound() {
 	this.Status = http.StatusNotFound
-	this.Message = "Resource Not Found"
+	this.Message = "Resource Not Found."
+}
+
+func (this *Response) Forbidden(){
+	this.Status = http.StatusForbidden
+	this.Message = "You do not have access to this part of the website."
 }
 
 func SendNotFound(w http.ResponseWriter) {
@@ -55,6 +60,18 @@ func SendNoContent(w http.ResponseWriter) {
 	response.Send()
 }
 
+func SendForbidden(w http.ResponseWriter) {
+	response := CreateDefaultResponse(w)
+	response.Forbidden()
+	response.Send()
+}
+
+func SendBadRequest(w http.ResponseWriter) {
+	response := CreateDefaultResponse(w)
+	response.BadRequest()
+	response.Send()
+}
+
 func (this *Response) NoContent() {
 	this.Status = http.StatusNoContent
 	this.Message = "No content"
@@ -63,4 +80,9 @@ func (this *Response) NoContent() {
 func (this *Response) UnprocessableEntity() {
 	this.Status = http.StatusUnprocessableEntity
 	this.Message = "Resource not adapted"
+}
+
+func (this *Response) BadRequest(){
+	this.Status = http.StatusBadRequest
+	this.Message = "Bad Request. Try to log in again and refresh the website."
 }

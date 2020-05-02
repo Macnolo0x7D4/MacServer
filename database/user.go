@@ -1,11 +1,10 @@
 package database
 
 import (
-	"errors"
+	"../models"
+	"golang.org/x/crypto/bcrypt"
 	"regexp"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -23,14 +22,7 @@ var emailRegexp = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$
 type Users []User
 
 func NewUser(username, password, email string, role, level int) *User {
-	passwordEncrypted := SetPassword(password)
-	user := &User{Username: username, Password: passwordEncrypted, Email: email, Role: role, Level: level}
-	return user
-}
-
-func CreateDefaultUser() *User {
-	user := NewUser("Macnolo0x7D4", "root", "yosoymacnolo@gmail.com", 0, 255)
-	user.Save()
+	user := &User{Username: username, Password: password, Email: email, Role: role, Level: level}
 	return user
 }
 
@@ -52,6 +44,12 @@ func GetUserByUsername(username string) *User {
 	return user
 }
 
+func GetUserByEmail(email string) *User {
+	user := &User{}
+	Database.Where("email=?", email).First(user)
+	return user
+}
+
 func (this *User) Save() (bool, error) {
 	if this.Id == 0 {
 		Database.Create(&this)
@@ -67,38 +65,78 @@ func (this *User) Delete() {
 	Database.Delete(&this)
 }
 
-func SetPassword(password string) string {
-	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func (this *User) EncryptPassword(){
+	hash, _ := bcrypt.GenerateFromPassword([]byte(this.Password), bcrypt.DefaultCost)
+	this.Password = string(hash)
+}
+
+func EncryptPassword(passwd string) string{
+	hash, _ := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	return string(hash)
 }
 
-func Login(username, password string) bool {
-	user := GetUserByUsername(username)
-	if result := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); result != nil {
-		return false
-	} else {
-		return true
+func Login(email, password string) (*User, error){
+	user := GetUserByEmail(email)
+
+	if(user.Id == 0){
+		return nil, models.NotFoundAccountError
 	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
+	if(err != nil){
+		return nil, models.AccessDeniedError
+	}
+
+	return user, nil
 }
 
-func (this *User) Valid() (bool, error) {
-	if len(this.Username) > 20 {
-		err := errors.New("The username is too large")
-		return false, err
+func (this *User) Valid() error{
+	if lenUsername := len(this.Username); lenUsername == 0 {
+		return models.NoUsernameError
+	} else if lenUsername < 4{
+		return models.ShortUsernameError
+	} else if lenUsername > 20{
+		return models.LongUsernameError
+	}
+
+	if lenPassword := len(this.Password); lenPassword == 0{
+		return models.NoPasswordError
+	} else if lenPassword < 8{
+		return models.WeakPasswordError
+	} else if lenPassword > 31{
+		return models.LongPasswordError
+	}
+
+	this.EncryptPassword()
+
+	if len(this.Password) != 60 {
+		return models.IsPasswordEncryptedError
+	}
+
+	if lenEmail := len(this.Email); lenEmail == 0{
+		return models.NoEmailError
+	} else if lenEmail < 12{
+		return models.ShortEmailError
+	} else if lenEmail > 40{
+		return models.LongEmailError
 	}
 
 	if !emailRegexp.MatchString(this.Email) {
-		err := errors.New("The email format is not vaild")
-		return false, err
+		return models.WrongEmailFormatError
 	}
 
-	if len(this.Password) != 60 {
-		this.Password = SetPassword(this.Password)
+	if GetUserByUsername(this.Username).Id != 0{
+		return models.DuplicatedUsernameError
+	}
+
+	if GetUserByEmail(this.Email).Id != 0{
+		return models.DuplicatedEmailError
 	}
 
 	if this.Role == 0 {
 		this.Role = 32
 	}
 
-	return false, nil
+	return nil
 }

@@ -1,11 +1,10 @@
 package database
 
 import (
-	"log"
-
 	"../config"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"log"
 )
 
 var Database *gorm.DB
@@ -20,7 +19,12 @@ func CreateConnection() {
 }
 
 func CloseConnection() {
-	Database.Close()
+	err := Database.Close()
+
+	if err != nil{
+		panic(err)
+	}
+
 }
 
 func CreateTable() {

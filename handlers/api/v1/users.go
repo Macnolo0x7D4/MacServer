@@ -1,14 +1,13 @@
 package v1
 
 import (
-	"encoding/json"
-	"errors"
-	"net/http"
-	"strconv"
-
 	"../../../database"
 	"../../../models"
+	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
+	"net/http"
+	"strconv"
 )
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +33,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isValid, _ := user.Valid(); !isValid {
+	if err := user.Valid(); err != nil {
 		models.SendUnprocessableEntity(w)
 		return
 	}
@@ -64,7 +63,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	user.Password = userResponse.Password
 	user.Email = userResponse.Email
 
-	if valid, _ := user.Valid(); !valid {
+	if err := user.Valid(); err != nil {
 		models.SendUnprocessableEntity(w)
 		return
 	} else {
@@ -100,5 +99,4 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		user.Delete()
 		models.SendNoContent(w)
 	}
-
 }

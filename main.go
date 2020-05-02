@@ -1,55 +1,73 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
-	v1 "./handlers/api/v1"
-
 	"./config"
 	"./database"
 	"./handlers"
+	v1 "./handlers/api/v1"
+	"bufio"
+	"context"
 	"github.com/gorilla/mux"
+	"log"
+	"net/http"
+	"os"
 )
 
-/*func (this *User) ServeHTTP(w http.ResponseWriter, r *http.Request){
-	r.URL.Query()
-
-	//uri := CreateURL(r.URL.Query.Get("href"))
-	uri := "LOLOLO"
-
-	if len(uri) != 0 {
-		fmt.Fprintf(w, "Hello " + this.name + ", you will be redirected to: " + uri)
-	}else {
-		fmt.Fprintf(w, "Hello " + this.name)
-	}
-}*/
+var Server *http.Server
 
 func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", handlers.Index)
-	r.HandleFunc("/api/v1/users/", v1.GetUsers).Methods("GET")
-	r.HandleFunc("/api/v1/users/", v1.CreateUser).Methods("POST")
-	r.HandleFunc("/api/v1/users/{id:[0-9]+}", v1.GetUser).Methods("GET")
-	r.HandleFunc("/api/v1/users/{id:[0-9]+}", v1.UpdateUser).Methods("PUT")
-	r.HandleFunc("/api/v1/users/{id:[0-9]+}", v1.DeleteUser).Methods("DELETE")
+	r.HandleFunc("/login", handlers.Login).Methods("GET", "POST")
+	r.HandleFunc("/logout", handlers.Logout)
+	r.HandleFunc("/register", handlers.Register).Methods("GET", "POST")
 
-	assets := http.FileServer(http.Dir("../www/application/assets"))
+	r.Handle("/api/v1/users/", handlers.Auth(v1.GetUser)).Methods("GET")
+	r.Handle("/api/v1/users/", handlers.Auth(v1.CreateUser)).Methods("POST")
+	r.Handle("/api/v1/users/{id:[0-9]+}", handlers.Auth(v1.GetUser)).Methods("GET")
+	r.Handle("/api/v1/users/{id:[0-9]+}", handlers.Auth(v1.UpdateUser)).Methods("PUT")
+	r.Handle("/api/v1/users/{id:[0-9]+}", handlers.Auth(v1.DeleteUser)).Methods("DELETE")
+
+	assets := http.FileServer(http.Dir(config.Assets()))
 	statics := http.StripPrefix("/assets", assets)
 
 	r.PathPrefix("/assets/").Handler(statics)
 
 	database.CreateConnection()
 
-	/*server := &http.Server{
-		Addr:    config.GetUrlWebserver(),
+	//database.CreateTable()
+
+	Server = &http.Server{
+		Addr: config.GetUrlHttp(),
 		Handler: r,
-	}*/
+	}
 
-	log.Println("Listening:", config.ServerPort())
+	log.Println("Listening:", "http://" + config.GetUrlHttp())
 
-	//log.Fatal(server.ListenAndServe)
-	log.Fatal(http.ListenAndServe(":8000", r))
-	database.CloseConnection()
+	go cli()
+
+	log.Fatal(Server.ListenAndServe())
+}
+
+func cli(){
+	reader := bufio.NewReader(os.Stdin)
+
+	for{
+		cmd, _, _ := reader.ReadLine()
+
+		if string(cmd) == "stop" {
+
+			log.Println("Closing MySQL Communication...")
+			database.CloseConnection()
+
+			log.Println("Stopping HTTP server...")
+
+			Server.Shutdown(context.Background())
+
+			log.Println("Done! Bye.")
+
+			os.Exit(0)
+		}
+	}
 }
